@@ -1,0 +1,55 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: remotecare-postgres
+
+    environment:
+      POSTGRES_USER: remotecare
+      POSTGRES_PASSWORD: StrongPassword
+      POSTGRES_DB: remotecare
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: remotecare-pgadmin
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: StrongPassword
+
+    ports:
+      - "8080:80"
+
+    restart: unless-stopped
+
+  django:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+
+    container_name: remotecare-django
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./backend:/app
+
+    env_file:
+      - .env
+
+    depends_on:
+      - postgres
+
+    restart: unless-stopped
+
+volumes:
+  pgdata:
