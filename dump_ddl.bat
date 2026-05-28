@@ -1,0 +1,1 @@
+docker exec -t remotecare-postgres pg_dump -U remotecare -d remotecare --schema-only --no-owner > ddl\ddl.sql
