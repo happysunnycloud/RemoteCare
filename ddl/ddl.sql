@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict eBv97KYjssEbA84OWCLTxmxTekaxp9ulxS1QgT7bf9biFjoaMbO2uKiylTUFEWo
+\restrict avRaQ7JAOjgA7Z6ft96BbhaHYeHGOMNgfUY0c3EPtbOq3gjNOOegeODgaaa79tb
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg13+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg13+1)
@@ -180,10 +180,10 @@ $$;
 
 
 --
--- Name: get_assigners(bigint, character varying, character varying, character varying, character varying, character varying, boolean); Type: FUNCTION; Schema: auth; Owner: -
+-- Name: get_assigners(bigint, character varying, character varying, character varying, character varying, character varying, boolean, character varying, character varying); Type: FUNCTION; Schema: auth; Owner: -
 --
 
-CREATE FUNCTION auth.get_assigners(p_id bigint DEFAULT NULL::bigint, p_first_name character varying DEFAULT NULL::character varying, p_middle_name character varying DEFAULT NULL::character varying, p_last_name character varying DEFAULT NULL::character varying, p_login character varying DEFAULT NULL::character varying, p_email character varying DEFAULT NULL::character varying, p_is_active boolean DEFAULT true) RETURNS TABLE(id bigint, first_name character varying, middle_name character varying, last_name character varying, login character varying, email character varying, is_active boolean, created_at timestamp without time zone, updated_at timestamp without time zone)
+CREATE FUNCTION auth.get_assigners(p_id bigint DEFAULT NULL::bigint, p_first_name character varying DEFAULT NULL::character varying, p_middle_name character varying DEFAULT NULL::character varying, p_last_name character varying DEFAULT NULL::character varying, p_login character varying DEFAULT NULL::character varying, p_email character varying DEFAULT NULL::character varying, p_is_active boolean DEFAULT true, p_sort_by character varying DEFAULT 'id'::character varying, p_sort_order character varying DEFAULT 'asc'::character varying) RETURNS TABLE(id bigint, first_name character varying, middle_name character varying, last_name character varying, login character varying, email character varying, is_active boolean, created_at timestamp without time zone, updated_at timestamp without time zone)
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -192,10 +192,10 @@ BEGIN
     SELECT
         a.id,
         a.first_name,
-	a.middle_name,
+		a.middle_name,
         a.last_name,
         a.login,
-	a.email,
+		a.email,
         a.is_active,
         a.created_at,
         a.updated_at
@@ -238,7 +238,78 @@ BEGIN
 	
 	AND
 	    a.is_active = p_is_active	
-    ORDER BY a.id;
+	ORDER BY
+    CASE
+        WHEN p_sort_by = 'id'
+         AND p_sort_order = 'asc'
+        THEN a.id
+    END ASC,
+
+    CASE
+        WHEN p_sort_by = 'id'
+         AND p_sort_order = 'desc'
+        THEN a.id
+    END DESC,
+
+    CASE
+        WHEN p_sort_by = 'first_name'
+         AND p_sort_order = 'asc'
+        THEN a.first_name
+    END ASC,
+
+    CASE
+        WHEN p_sort_by = 'first_name'
+         AND p_sort_order = 'desc'
+        THEN a.first_name
+    END DESC,
+
+    CASE
+        WHEN p_sort_by = 'middle_name'
+         AND p_sort_order = 'asc'
+        THEN a.middle_name
+    END ASC,
+
+    CASE
+        WHEN p_sort_by = 'middle_name'
+         AND p_sort_order = 'desc'
+        THEN a.middle_name
+    END DESC,
+
+    CASE
+        WHEN p_sort_by = 'last_name'
+         AND p_sort_order = 'asc'
+        THEN a.last_name
+    END ASC,
+
+    CASE
+        WHEN p_sort_by = 'last_name'
+         AND p_sort_order = 'desc'
+        THEN a.last_name
+    END DESC,
+
+    CASE
+        WHEN p_sort_by = 'login'
+         AND p_sort_order = 'asc'
+        THEN a.login
+    END ASC,
+
+    CASE
+        WHEN p_sort_by = 'login'
+         AND p_sort_order = 'desc'
+        THEN a.login
+    END DESC,
+
+    CASE
+        WHEN p_sort_by = 'email'
+         AND p_sort_order = 'asc'
+        THEN a.email
+    END ASC,
+
+    CASE
+        WHEN p_sort_by = 'email'
+         AND p_sort_order = 'desc'
+        THEN a.email
+    END DESC;
 
 END;
 $$;
@@ -926,5 +997,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict eBv97KYjssEbA84OWCLTxmxTekaxp9ulxS1QgT7bf9biFjoaMbO2uKiylTUFEWo
+\unrestrict avRaQ7JAOjgA7Z6ft96BbhaHYeHGOMNgfUY0c3EPtbOq3gjNOOegeODgaaa79tb
 

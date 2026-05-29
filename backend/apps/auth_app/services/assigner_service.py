@@ -7,7 +7,9 @@ def get_assigners(
     last_name=None,
     login=None,
     email=None,
-    is_active=True
+    is_active=True,
+    sort_by='id',
+    sort_order='asc'
 ):
     connection = get_connection()
     cursor = connection.cursor()
@@ -15,6 +17,8 @@ def get_assigners(
         '''
         SELECT *
         FROM auth.get_assigners(
+            %s,
+            %s,
             %s,
             %s,
             %s,
@@ -32,6 +36,8 @@ def get_assigners(
             login,
             email,
             is_active,
+            sort_by,
+            sort_order,
         )
     )
 

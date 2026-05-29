@@ -76,14 +76,82 @@ def get_assigner_filters(
         ) == 'true',
     }
 
+def get_assigner_sorting(request):
+    return {
+        'sort_by': get_query_param(
+            request,
+            'sort_by',
+            'id'
+        ),
+
+        'sort_order': get_query_param(
+            request,
+            'sort_order',
+            'asc'
+        ),
+    }
+
+def build_sort_link(
+    filters,
+    sorting,
+    column_name
+):
+    next_sort_order = 'asc'
+
+    if (
+        sorting['sort_by'] == column_name
+        and
+        sorting['sort_order'] == 'asc'
+    ):
+        next_sort_order = 'desc'
+
+    params = []
+
+    for key, value in filters.items():
+        if isinstance(
+            value,
+            bool
+        ):
+            if value:
+                params.append(
+                    f'{key}=true'
+                )
+            continue
+
+        if value is not None:
+            params.append(
+                f'{key}={value}'
+            )
+
+    params.append(
+        f'sort_by={column_name}'
+    )
+
+    params.append(
+        f'sort_order={next_sort_order}'
+    )
+
+    query_string = '&'.join(
+        params
+    )
+
+    return f'?{query_string}'
+
 def assigner_list(request):
     filters = get_assigner_filters(
         request
     )    
     
-    rows = get_assigners(**filters)
+    sorting = get_assigner_sorting(
+        request
+    )    
     
-    html = '''
+    rows = get_assigners(
+        **filters,
+        **sorting
+    )
+    
+    html = f'''
     <h1>Assigners</h1>
     <form method="get">
     <a href="/assigners/create/">
@@ -93,13 +161,39 @@ def assigner_list(request):
     <br>
     <table border="1" cellpadding="5">
         <tr>
-            <th>ID</th>
-            <th>First Name</th>
-            <th>Middle Name</th>
-            <th>Last Name</th>
-            <th>Login</th>
-            <th>Email</th>
-            <th>Active</th>
+        <th>
+            <a href="{build_sort_link(filters, sorting, 'id')}">
+                ID
+            </a>
+        </th>
+        <th>
+            <a href="{build_sort_link(filters, sorting, 'first_name')}">
+                First Name
+            </a>
+        </th>
+        <th>
+            <a href="{build_sort_link(filters, sorting, 'middle_name')}">
+                Middle Name
+            </a>
+        </th>
+        <th>
+            <a href="{build_sort_link(filters, sorting, 'last_name')}">
+                Last Name
+            </a>
+        </th>
+        <th>
+            <a href="{build_sort_link(filters, sorting, 'login')}">
+                Login
+            </a>
+        </th>
+        <th>
+            <a href="{build_sort_link(filters, sorting, 'email')}">
+                Email
+            </a>
+        </th>
+        <th>
+            Active
+        </th>
         </tr>
     '''
     
