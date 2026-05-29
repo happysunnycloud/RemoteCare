@@ -1,13 +1,38 @@
 from common.db import get_connection
 
-def get_assigners():
+def get_assigners(
+    assigner_id=None,
+    first_name=None,
+    middle_name=None,
+    last_name=None,
+    login=None,
+    email=None,
+    is_active=True
+):
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(
         '''
         SELECT *
-        FROM auth.get_assigners();
-        '''
+        FROM auth.get_assigners(
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
+        );
+        ''',
+        (
+            assigner_id,
+            first_name,
+            middle_name,
+            last_name,
+            login,
+            email,
+            is_active,
+        )
     )
 
     rows = cursor.fetchall()

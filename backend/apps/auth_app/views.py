@@ -19,10 +19,73 @@ def alert_back(message):
         '''
     )
 
+def get_query_param(
+    request,
+    param_name,
+    default_value=None
+):
+    value = request.GET.get(
+        param_name
+    )
+
+    if value == '':
+        return default_value
+
+    if value is None:
+        return default_value
+
+    return value
+
+def get_assigner_filters(
+    request
+):
+    return {
+        'assigner_id': get_query_param(
+            request,
+            'id'
+        ),
+
+        'first_name': get_query_param(
+            request,
+            'first_name'
+        ),
+
+        'middle_name': get_query_param(
+            request,
+            'middle_name'
+        ),
+
+        'last_name': get_query_param(
+            request,
+            'last_name'
+        ),
+
+        'login': get_query_param(
+            request,
+            'login'
+        ),
+
+        'email': get_query_param(
+            request,
+            'email'
+        ),
+
+        'is_active': get_query_param(
+            request,
+            'is_active'
+        ) == 'true',
+    }
+
 def assigner_list(request):
-    rows = get_assigners()
+    filters = get_assigner_filters(
+        request
+    )    
+    
+    rows = get_assigners(**filters)
+    
     html = '''
     <h1>Assigners</h1>
+    <form method="get">
     <a href="/assigners/create/">
         Create assigner
     </a>
@@ -39,6 +102,63 @@ def assigner_list(request):
             <th>Active</th>
         </tr>
     '''
+    
+    html += f'''
+    <tr>
+        <td>
+            <input
+                type="text"
+                name="id"
+                value="{filters['assigner_id'] or ''}"
+                style="width:70px;"
+            >
+        </td>
+        <td>
+            <input
+                type="text"
+                name="first_name"
+                value="{filters['first_name'] or ''}"
+            >
+        </td>
+        <td>
+            <input
+                type="text"
+                name="middle_name"
+                value="{filters['middle_name'] or ''}"
+            >
+        </td>
+        <td>
+            <input
+                type="text"
+                name="last_name"
+                value="{filters['last_name'] or ''}"
+            >
+        </td>
+        <td>
+            <input
+                type="text"
+                name="login"
+                value="{filters['login'] or ''}"
+            >
+        </td>
+        <td>
+            <input
+                type="text"
+                name="email"
+                value="{filters['email'] or ''}"
+            >
+        </td>
+        <td align="center">
+
+            <input
+                type="checkbox"
+                name="is_active"
+                value="true"
+                {'checked' if filters['is_active'] else ''}
+            >
+        </td>
+    </tr>
+    '''    
 
     for row in rows:
         html += f'''
@@ -53,7 +173,16 @@ def assigner_list(request):
         </tr>
         '''
 
-    html += '</table>'
+    html += '''
+    </table>
+    <br>
+
+    <button type="submit">
+        Search
+    </button>
+
+    </form>
+    '''
 
     return HttpResponse(html)
 

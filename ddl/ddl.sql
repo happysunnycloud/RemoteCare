@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict QgRuw7P4JU4VIfcLTvKYRkXwgCTXGvgV0izC8vvk7BkxjmXiIzOtxxzJUUyxguj
+\restrict eBv97KYjssEbA84OWCLTxmxTekaxp9ulxS1QgT7bf9biFjoaMbO2uKiylTUFEWo
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg13+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg13+1)
@@ -180,10 +180,10 @@ $$;
 
 
 --
--- Name: get_assigners(); Type: FUNCTION; Schema: auth; Owner: -
+-- Name: get_assigners(bigint, character varying, character varying, character varying, character varying, character varying, boolean); Type: FUNCTION; Schema: auth; Owner: -
 --
 
-CREATE FUNCTION auth.get_assigners() RETURNS TABLE(id bigint, first_name character varying, middle_name character varying, last_name character varying, login character varying, email character varying, is_active boolean, created_at timestamp without time zone, updated_at timestamp without time zone)
+CREATE FUNCTION auth.get_assigners(p_id bigint DEFAULT NULL::bigint, p_first_name character varying DEFAULT NULL::character varying, p_middle_name character varying DEFAULT NULL::character varying, p_last_name character varying DEFAULT NULL::character varying, p_login character varying DEFAULT NULL::character varying, p_email character varying DEFAULT NULL::character varying, p_is_active boolean DEFAULT true) RETURNS TABLE(id bigint, first_name character varying, middle_name character varying, last_name character varying, login character varying, email character varying, is_active boolean, created_at timestamp without time zone, updated_at timestamp without time zone)
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -200,6 +200,44 @@ BEGIN
         a.created_at,
         a.updated_at
     FROM auth.assigner a
+	WHERE
+	    (
+	        p_id IS NULL
+	        OR a.id = p_id
+	    )
+	
+	AND
+	    (
+	        p_first_name IS NULL
+	        OR a.first_name ILIKE '%' || p_first_name || '%'
+	    )
+	
+	AND
+	    (
+	        p_middle_name IS NULL
+	        OR a.middle_name ILIKE '%' || p_middle_name || '%'
+	    )
+	
+	AND
+	    (
+	        p_last_name IS NULL
+	        OR a.last_name ILIKE '%' || p_last_name || '%'
+	    )
+	
+	AND
+	    (
+	        p_login IS NULL
+	        OR a.login ILIKE '%' || p_login || '%'
+	    )
+	
+	AND
+	    (
+	        p_email IS NULL
+	        OR a.email ILIKE '%' || p_email || '%'
+	    )
+	
+	AND
+	    a.is_active = p_is_active	
     ORDER BY a.id;
 
 END;
@@ -888,5 +926,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QgRuw7P4JU4VIfcLTvKYRkXwgCTXGvgV0izC8vvk7BkxjmXiIzOtxxzJUUyxguj
+\unrestrict eBv97KYjssEbA84OWCLTxmxTekaxp9ulxS1QgT7bf9biFjoaMbO2uKiylTUFEWo
 
