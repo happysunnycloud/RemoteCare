@@ -141,6 +141,9 @@ def assigner_list(request):
     filters = get_assigner_filters(
         request
     )    
+
+    if not request.GET:
+        filters['is_active'] = True
     
     sorting = get_assigner_sorting(
         request
