@@ -4,10 +4,13 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.auth_app.services.assigner_service import create_assigner
 from apps.auth_app.services.assigner_service import get_assigners
+from apps.auth_app.services.assigner_service import get_assigner
 from apps.auth_app.services.assigner_service import get_assigner_by_login
 from apps.auth_app.services.assigner_service import get_assigner_by_email
 
 from common.password import hash_password
+
+PAGE_SIZE = 20
 
 def alert_back(message):
     return HttpResponse(
@@ -91,6 +94,25 @@ def get_assigner_sorting(request):
         ),
     }
 
+def get_assigner_paging(
+    request
+):
+
+    page_number = get_query_param(
+        request,
+        'page',
+        '1'
+    )
+
+    return {
+
+        'page_number': int(
+            page_number
+        ),
+
+        'page_size': PAGE_SIZE,
+    }
+
 def build_sort_link(
     filters,
     sorting,
@@ -136,6 +158,45 @@ def build_sort_link(
     )
 
     return f'?{query_string}'
+    
+def build_page_link(
+    filters,
+    sorting,
+    page_number
+):
+
+    params = []
+
+    for key, value in filters.items():
+        if isinstance(
+            value,
+            bool
+        ):
+            params.append(
+                f'{key}={"true" if value else "false"}'
+            )
+            continue
+
+        if value is not None:
+            params.append(
+                f'{key}={value}'
+            )
+
+    params.append(
+        f'sort_by={sorting["sort_by"]}'
+    )
+
+    params.append(
+        f'sort_order={sorting["sort_order"]}'
+    )
+
+    params.append(
+        f'page={page_number}'
+    )
+
+    return '?' + '&'.join(
+        params
+    )    
 
 def assigner_list(request):
     filters = get_assigner_filters(
@@ -148,11 +209,42 @@ def assigner_list(request):
     sorting = get_assigner_sorting(
         request
     )    
+
+    paging = get_assigner_paging(
+        request
+    )
     
     rows = get_assigners(
         **filters,
-        **sorting
+        **sorting,
+        **paging        
     )
+    
+    total_count = 0
+    if rows:
+        total_count = rows[0][-1] 
+
+    page_number = paging['page_number']
+    page_size = paging['page_size']
+        
+    total_pages = (
+        total_count
+        +
+        page_size
+        -
+        1
+    ) // page_size
+    
+    if total_pages == 0:
+        total_pages = 1
+
+    if page_number < 1:
+        page_number = 1
+
+    if page_number > total_pages:
+        page_number = total_pages
+
+    paging['page_number'] = page_number    
     
     html = f'''
     <h1>Assigners</h1>
@@ -259,12 +351,16 @@ def assigner_list(request):
 
     for row in rows:
         html += f'''
-        <tr>
+        <tr>            
             <td>{row[0]}</td>
             <td>{row[1]}</td>
             <td>{row[2]}</td>
             <td>{row[3]}</td>
-            <td>{row[4]}</td>
+            <td>
+                <a href="/assigners/edit/{row[0]}/">
+                    {row[4]}
+                </a>
+            </td>
             <td>{row[5]}</td>
             <td>{row[6]}</td>
         </tr>
@@ -280,6 +376,35 @@ def assigner_list(request):
 
     </form>
     '''
+
+    html += '<br><br>'
+    if page_number > 1:
+        html += f'''
+        <a href="{build_page_link(
+            filters,
+            sorting,
+            page_number - 1
+        )}">
+            Previous
+        </a>
+        '''
+
+    html += f'''
+    &nbsp;&nbsp;
+    Page {page_number} of {total_pages}
+    &nbsp;&nbsp;
+    '''
+
+    if page_number < total_pages:
+        html += f'''
+        <a href="{build_page_link(
+            filters,
+            sorting,
+            page_number + 1
+        )}">
+            Next
+        </a>
+        '''
 
     return HttpResponse(html)
 
@@ -439,3 +564,13 @@ def assigner_create(request):
     )
 
     return redirect('/assigners/')
+
+@csrf_exempt
+def assigner_edit(
+    request,
+    assigner_id
+):
+
+    return HttpResponse(
+        f'Edit assigner {assigner_id}'
+    )

@@ -9,7 +9,9 @@ def get_assigners(
     email=None,
     is_active=True,
     sort_by='id',
-    sort_order='asc'
+    sort_order='asc',
+    page_number=1,
+    page_size=20
 ):
     connection = get_connection()
     cursor = connection.cursor()
@@ -17,6 +19,8 @@ def get_assigners(
         '''
         SELECT *
         FROM auth.get_assigners(
+            %s,
+            %s,
             %s,
             %s,
             %s,
@@ -38,6 +42,8 @@ def get_assigners(
             is_active,
             sort_by,
             sort_order,
+            page_number,
+            page_size,
         )
     )
 
