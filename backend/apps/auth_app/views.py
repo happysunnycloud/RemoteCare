@@ -12,6 +12,16 @@ from common.password import hash_password
 
 PAGE_SIZE = 20
 
+ASSIGNER_ID = 0
+ASSIGNER_FIRST_NAME = 1
+ASSIGNER_MIDDLE_NAME = 2
+ASSIGNER_LAST_NAME = 3
+ASSIGNER_LOGIN = 4
+ASSIGNER_EMAIL = 5
+ASSIGNER_IS_ACTIVE = 6
+#ASSIGNER_CREATED_AT = 7
+#ASSIGNER_UPDATED_AT = 8
+
 def alert_back(message):
     return HttpResponse(
         f'''
@@ -352,17 +362,17 @@ def assigner_list(request):
     for row in rows:
         html += f'''
         <tr>            
-            <td>{row[0]}</td>
-            <td>{row[1]}</td>
-            <td>{row[2]}</td>
-            <td>{row[3]}</td>
+            <td>{row[ASSIGNER_ID]}</td>
+            <td>{row[ASSIGNER_FIRST_NAME]}</td>
+            <td>{row[ASSIGNER_MIDDLE_NAME]}</td>
+            <td>{row[ASSIGNER_LAST_NAME]}</td>
             <td>
-                <a href="/assigners/edit/{row[0]}/">
-                    {row[4]}
+                <a href="/assigners/edit/{row[ASSIGNER_ID]}/">
+                    {row[ASSIGNER_LOGIN]}
                 </a>
             </td>
-            <td>{row[5]}</td>
-            <td>{row[6]}</td>
+            <td>{row[ASSIGNER_EMAIL]}</td>
+            <td>{row[ASSIGNER_IS_ACTIVE]}</td>
         </tr>
         '''
 
@@ -570,7 +580,93 @@ def assigner_edit(
     request,
     assigner_id
 ):
+    assigner = get_assigner(
+        assigner_id
+    )
+    
+    if assigner is None:
+
+        return HttpResponse(
+            'Assigner not found'
+        )
+        
+    html = f'''
+    <h1>Edit assigner</h1>
+
+    <form method="post">
+
+        <div>
+            First name
+        </div>
+
+        <input
+            type="text"
+            name="first_name"
+            value="{assigner[ASSIGNER_FIRST_NAME]}"
+        >
+
+        <br>
+        <br>
+
+        <div>
+            Middle name
+        </div>
+
+        <input
+            type="text"
+            name="middle_name"
+            value="{assigner[ASSIGNER_MIDDLE_NAME] or ''}"
+        >
+
+        <br>
+        <br>
+
+        <div>
+            Last name
+        </div>
+
+        <input
+            type="text"
+            name="last_name"
+            value="{assigner[ASSIGNER_LAST_NAME]}"
+        >
+
+        <br>
+        <br>
+
+        <div>
+            Login
+        </div>
+
+        <input
+            type="text"
+            name="login"
+            value="{assigner[ASSIGNER_LOGIN]}"
+        >
+
+        <br>
+        <br>
+
+        <div>
+            Email
+        </div>
+
+        <input
+            type="text"
+            name="email"
+            value="{assigner[ASSIGNER_EMAIL]}"
+        >
+
+        <br>
+        <br>
+
+        <button type="submit">
+            Save
+        </button>
+
+    </form>
+    '''
 
     return HttpResponse(
-        f'Edit assigner {assigner_id}'
-    )
+        html
+    )       
