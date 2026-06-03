@@ -11,6 +11,7 @@ from apps.auth_app.services.assigner_service import get_assigner_by_email
 from common.password import hash_password
 
 PAGE_SIZE = 20
+PASSWORD_PLACEHOLDER = '********'
 
 ASSIGNER_ID = 0
 ASSIGNER_FIRST_NAME = 1
@@ -23,6 +24,7 @@ ASSIGNER_IS_ACTIVE = 6
 #ASSIGNER_UPDATED_AT = 8
 
 def alert_back(message):
+    
     return HttpResponse(
         f'''
         <script>
@@ -30,6 +32,68 @@ def alert_back(message):
             window.history.back();
         </script>
         '''
+    )
+
+def validate_required_fields(
+    required_fields
+):
+    for field_value, field_name in required_fields:
+        if not field_value:
+            
+            return (
+                False,
+                alert_back(
+                    f'{field_name} is required'
+                )
+            )
+
+    return (
+        True,
+        None
+    )
+
+def validate_assigner_uniqueness(        
+        login, 
+        email,
+        id=None
+):
+
+    existing_assigner = get_assigner_by_login(login)    
+    existing_email = get_assigner_by_email(email)   
+
+    assigner_id = None
+    if existing_assigner is not None:
+        assigner_id, *void = existing_assigner
+        if (
+            id is None 
+            or
+            id != assigner_id 
+        ):
+            return (
+                False,     
+                alert_back(            
+                    f'Login "{login}" already exists'
+                )
+            )
+
+    assigner_id = None
+    if existing_email is not None:
+        assigner_id, = existing_email
+        if (
+            id is None 
+            or
+            id != assigner_id 
+        ):
+            return (
+                False,     
+                alert_back(            
+                    f'Email "{email}" already exists'
+                )
+            )
+
+    return (
+        True,
+        None
     )
 
 def get_query_param(
@@ -511,8 +575,6 @@ def assigner_create(request):
     email = request.POST.get('email')    
     password = request.POST.get('password')
     password_confirm = request.POST.get('password_confirm')    
-    existing_assigner = get_assigner_by_login(login)    
-    existing_email = get_assigner_by_email(email)
 
     required_fields = [
         (
@@ -541,22 +603,21 @@ def assigner_create(request):
         ),
     ]
 
-    for field_value, field_name in required_fields:
-        if not field_value:
-            return alert_back(
-                f'{field_name} is required'
-            )       
+    is_valid, response = validate_required_fields(
+        required_fields
+    ) 
     
-    if existing_assigner is not None:
-        return alert_back(
-            f'Login "{login}" already exists'
-        )  
-
-    if existing_email is not None:
-        return alert_back(
-            f'Email "{email}" already exists'
-        )
+    if not is_valid:
+        return response   
         
+    is_valid, response = validate_assigner_uniqueness(
+        login,
+        email
+    )   
+    
+    if not is_valid:
+        return response      
+ 
     if password != password_confirm:
         return alert_back(
             'Passwords do not match'
@@ -589,6 +650,91 @@ def assigner_edit(
         return HttpResponse(
             'Assigner not found'
         )
+        
+    if request.method == 'POST':
+        first_name = request.POST.get(
+            'first_name'
+        )
+
+        middle_name = request.POST.get(
+            'middle_name'
+        )
+
+        last_name = request.POST.get(
+            'last_name'
+        )
+
+        login = request.POST.get(
+            'login'
+        )
+
+        email = request.POST.get(
+            'email'
+        )
+
+        password = request.POST.get(
+            'password'
+        )
+
+        password_confirm = request.POST.get(
+            'password_confirm'
+        )
+        
+        required_fields = [
+            (
+                first_name,
+                'First name'
+            ),
+            (
+                last_name,
+                'Last name'
+            ),
+            (
+                login,
+                'Login'
+            ),
+            (
+                email,
+                'Email'
+            ),
+        ]
+
+        is_valid, response = validate_required_fields(
+            required_fields
+        )
+
+        is_valid, response = validate_assigner_uniqueness(
+            login,
+            email,
+            assigner_id
+        )
+
+        if not is_valid:
+            return response
+            
+        if (
+            password != PASSWORD_PLACEHOLDER
+            or
+            password_confirm != PASSWORD_PLACEHOLDER
+        ):
+
+            if not password:
+
+                return alert_back(
+                    'Password is required'
+                )
+
+            if not password_confirm:
+
+                return alert_back(
+                    'Confirm password is required'
+                )
+
+            if password != password_confirm:
+
+                return alert_back(
+                    'Passwords do not match'
+                )            
         
     html = f'''
     <h1>Edit assigner</h1>
@@ -656,6 +802,32 @@ def assigner_edit(
             name="email"
             value="{assigner[ASSIGNER_EMAIL]}"
         >
+                
+        <br>
+        <br>
+
+        <div>
+            Password
+        </div>
+
+        <input
+            type="password"
+            name="password"
+            value="{PASSWORD_PLACEHOLDER}"
+        >        
+        
+        <br>
+        <br>
+
+        <div>
+            Confirm password
+        </div>
+
+        <input
+            type="password"
+            name="password_confirm"
+            value="{PASSWORD_PLACEHOLDER}"
+        >        
 
         <br>
         <br>
