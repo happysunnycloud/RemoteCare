@@ -167,3 +167,42 @@ def get_assigner_by_email(
     connection.close()
 
     return row 
+
+def update_assigner(
+    assigner_id,
+    first_name,
+    middle_name,
+    last_name,
+    login,
+    email,
+    password_hash=None
+):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute(
+        '''
+        SELECT auth.update_assigner(
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
+        );
+        ''',
+        (
+            assigner_id,
+            first_name,
+            middle_name,
+            last_name,
+            login,
+            email,
+            password_hash
+        )
+    )
+
+    connection.commit()
+    cursor.close()
+    connection.close()

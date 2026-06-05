@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict W50iCesk82K5FUROlU4BLuuyq8ilqSUsDVSMXhw0Ejcb8JPFVTrFj9GGM7eEftN
+\restrict ZG8wuXryso0CJXk4vQSffwtsKrxjFultRZE8bIanVTvMDiFQyIP0oR0TBHMAhOh
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg13+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg13+1)
@@ -341,6 +341,32 @@ BEGIN
         last_name  = p_last_name,
         login      = p_login,
         is_active  = p_is_active
+    WHERE id = p_assigner_id;
+
+END;
+$$;
+
+
+--
+-- Name: update_assigner(bigint, character varying, character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.update_assigner(p_assigner_id bigint, p_first_name character varying, p_middle_name character varying, p_last_name character varying, p_login character varying, p_email character varying, p_password_hash character varying DEFAULT NULL::character varying) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+
+    UPDATE auth.assigner
+    SET
+        first_name = p_first_name,
+        middle_name = p_middle_name,
+        last_name = p_last_name,
+        login = p_login,
+        email = p_email,
+        password_hash = COALESCE(
+            p_password_hash,
+            password_hash
+        )
     WHERE id = p_assigner_id;
 
 END;
@@ -1008,5 +1034,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict W50iCesk82K5FUROlU4BLuuyq8ilqSUsDVSMXhw0Ejcb8JPFVTrFj9GGM7eEftN
+\unrestrict ZG8wuXryso0CJXk4vQSffwtsKrxjFultRZE8bIanVTvMDiFQyIP0oR0TBHMAhOh
 

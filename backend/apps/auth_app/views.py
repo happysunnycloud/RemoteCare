@@ -2,13 +2,14 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 
+from common.password import hash_password
+
 from apps.auth_app.services.assigner_service import create_assigner
 from apps.auth_app.services.assigner_service import get_assigners
 from apps.auth_app.services.assigner_service import get_assigner
 from apps.auth_app.services.assigner_service import get_assigner_by_login
 from apps.auth_app.services.assigner_service import get_assigner_by_email
-
-from common.password import hash_password
+from apps.auth_app.services.assigner_service import update_assigner
 
 PAGE_SIZE = 20
 PASSWORD_PLACEHOLDER = '********'
@@ -656,9 +657,10 @@ def assigner_edit(
             'first_name'
         )
 
-        middle_name = request.POST.get(
-            'middle_name'
-        )
+        # в данном контексте это поле не используется
+        # middle_name = request.POST.get(
+        #    'middle_name'
+        # )
 
         last_name = request.POST.get(
             'last_name'
@@ -703,6 +705,9 @@ def assigner_edit(
             required_fields
         )
 
+        if not is_valid:
+            return response
+
         is_valid, response = validate_assigner_uniqueness(
             login,
             email,
@@ -734,7 +739,34 @@ def assigner_edit(
 
                 return alert_back(
                     'Passwords do not match'
-                )            
+                )
+                        
+        password_hash = None
+
+        if (
+            password != PASSWORD_PLACEHOLDER
+            and
+            password_confirm != PASSWORD_PLACEHOLDER
+        ):
+            password_hash = hash_password(
+                password
+            )            
+
+        update_assigner(
+            assigner_id=assigner_id,
+            first_name=first_name,
+            middle_name=assigner[
+                ASSIGNER_MIDDLE_NAME
+            ],
+            last_name=last_name,
+            login=login,
+            email=email,
+            password_hash=password_hash
+        )
+
+        return redirect(
+            '/assigners/'
+        )            
         
     html = f'''
     <h1>Edit assigner</h1>
