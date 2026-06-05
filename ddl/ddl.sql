@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ZG8wuXryso0CJXk4vQSffwtsKrxjFultRZE8bIanVTvMDiFQyIP0oR0TBHMAhOh
+\restrict 65EcTeMTXQ4WqfIWJ3qWjMBWffQ2EzsodHQEl5Bh4j5MBjGBIkND5IwKBn3LMhW
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg13+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg13+1)
@@ -59,41 +59,6 @@ BEGIN
     SET
         password_hash = p_password_hash
     WHERE id = p_assigner_id;
-
-END;
-$$;
-
-
---
--- Name: create_assigner(character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: auth; Owner: -
---
-
-CREATE FUNCTION auth.create_assigner(p_first_name character varying, p_middle_name character varying, p_last_name character varying, p_login character varying, p_password_hash character varying) RETURNS bigint
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    v_assigner_id BIGINT;
-BEGIN
-
-	INSERT INTO auth.assigner (
-	    first_name,
-		middle_name,
-	    last_name,
-	    login,
-	    email,
-	    password_hash
-	)
-	VALUES (
-	    p_first_name,
-		p_middle_name,
-	    p_last_name,
-	    p_login,
-	    p_email,
-	    p_password_hash
-	)
-	RETURNING id INTO v_assigner_id;
-
-    RETURN v_assigner_id;
 
 END;
 $$;
@@ -327,31 +292,10 @@ $$;
 
 
 --
--- Name: update_assigner(bigint, character varying, character varying, character varying, boolean); Type: FUNCTION; Schema: auth; Owner: -
+-- Name: update_assigner(bigint, character varying, character varying, character varying, character varying, character varying, boolean, character varying); Type: FUNCTION; Schema: auth; Owner: -
 --
 
-CREATE FUNCTION auth.update_assigner(p_assigner_id bigint, p_first_name character varying, p_last_name character varying, p_login character varying, p_is_active boolean) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-
-    UPDATE auth.assigner
-    SET
-        first_name = p_first_name,
-        last_name  = p_last_name,
-        login      = p_login,
-        is_active  = p_is_active
-    WHERE id = p_assigner_id;
-
-END;
-$$;
-
-
---
--- Name: update_assigner(bigint, character varying, character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: auth; Owner: -
---
-
-CREATE FUNCTION auth.update_assigner(p_assigner_id bigint, p_first_name character varying, p_middle_name character varying, p_last_name character varying, p_login character varying, p_email character varying, p_password_hash character varying DEFAULT NULL::character varying) RETURNS void
+CREATE FUNCTION auth.update_assigner(p_assigner_id bigint, p_first_name character varying, p_middle_name character varying, p_last_name character varying, p_login character varying, p_email character varying, p_is_active boolean, p_password_hash character varying DEFAULT NULL::character varying) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -363,10 +307,12 @@ BEGIN
         last_name = p_last_name,
         login = p_login,
         email = p_email,
+		is_active = p_is_active,
         password_hash = COALESCE(
             p_password_hash,
             password_hash
-        )
+        ),
+ 		updated_at = now()
     WHERE id = p_assigner_id;
 
 END;
@@ -1034,5 +980,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZG8wuXryso0CJXk4vQSffwtsKrxjFultRZE8bIanVTvMDiFQyIP0oR0TBHMAhOh
+\unrestrict 65EcTeMTXQ4WqfIWJ3qWjMBWffQ2EzsodHQEl5Bh4j5MBjGBIkND5IwKBn3LMhW
 

@@ -653,14 +653,19 @@ def assigner_edit(
         )
         
     if request.method == 'POST':
+        is_active = (
+            request.POST.get(
+                'is_active'
+            ) == 'true'
+        )
+
         first_name = request.POST.get(
             'first_name'
         )
-
-        # в данном контексте это поле не используется
-        # middle_name = request.POST.get(
-        #    'middle_name'
-        # )
+        
+        middle_name = request.POST.get(
+           'middle_name'
+        )
 
         last_name = request.POST.get(
             'last_name'
@@ -755,12 +760,11 @@ def assigner_edit(
         update_assigner(
             assigner_id=assigner_id,
             first_name=first_name,
-            middle_name=assigner[
-                ASSIGNER_MIDDLE_NAME
-            ],
+            middle_name=middle_name,
             last_name=last_name,
             login=login,
             email=email,
+            is_active=is_active, 
             password_hash=password_hash
         )
 
@@ -770,104 +774,93 @@ def assigner_edit(
         
     html = f'''
     <h1>Edit assigner</h1>
-
     <form method="post">
-
+        <div>
+            Active
+        </div>
+        <input
+            type="checkbox"
+            name="is_active"
+            value="true"
+            {'checked' if assigner[ASSIGNER_IS_ACTIVE] else ''}
+        >                  
+        <br>
+        <br>        
         <div>
             First name
         </div>
-
         <input
             type="text"
             name="first_name"
             value="{assigner[ASSIGNER_FIRST_NAME]}"
         >
-
         <br>
         <br>
-
         <div>
             Middle name
         </div>
-
         <input
             type="text"
             name="middle_name"
             value="{assigner[ASSIGNER_MIDDLE_NAME] or ''}"
         >
-
         <br>
         <br>
-
         <div>
             Last name
         </div>
-
         <input
             type="text"
             name="last_name"
             value="{assigner[ASSIGNER_LAST_NAME]}"
         >
-
         <br>
         <br>
-
         <div>
             Login
         </div>
-
         <input
             type="text"
             name="login"
             value="{assigner[ASSIGNER_LOGIN]}"
         >
-
         <br>
         <br>
-
         <div>
             Email
         </div>
-
         <input
             type="text"
             name="email"
             value="{assigner[ASSIGNER_EMAIL]}"
-        >
-                
+        >               
         <br>
         <br>
-
         <div>
             Password
         </div>
-
         <input
             type="password"
             name="password"
             value="{PASSWORD_PLACEHOLDER}"
-        >        
-        
+        >              
         <br>
         <br>
-
         <div>
             Confirm password
         </div>
-
         <input
             type="password"
             name="password_confirm"
             value="{PASSWORD_PLACEHOLDER}"
-        >        
-
+        >  
         <br>
         <br>
-
+        <br>
+        <br>           
         <button type="submit">
             Save
         </button>
-
     </form>
     '''
 

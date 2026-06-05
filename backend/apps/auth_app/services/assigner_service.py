@@ -175,6 +175,7 @@ def update_assigner(
     last_name,
     login,
     email,
+    is_active,
     password_hash=None
 ):
 
@@ -183,6 +184,7 @@ def update_assigner(
     cursor.execute(
         '''
         SELECT auth.update_assigner(
+            %s,
             %s,
             %s,
             %s,
@@ -199,6 +201,7 @@ def update_assigner(
             last_name,
             login,
             email,
+            is_active,
             password_hash
         )
     )
