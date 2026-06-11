@@ -1,3 +1,4 @@
+from psycopg.rows import dict_row
 from common.db import get_connection
 
 def get_assigners(
@@ -14,7 +15,9 @@ def get_assigners(
     page_size=20
 ):
     connection = get_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(
+        row_factory=dict_row
+    )
     cursor.execute(
         '''
         SELECT *
@@ -58,7 +61,9 @@ def get_assigner(
     assigner_id
 ):
     connection = get_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(
+        row_factory=dict_row
+    )
     cursor.execute(
         '''
         SELECT *
@@ -86,7 +91,9 @@ def create_assigner(
 ):
 
     connection = get_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(
+        row_factory=dict_row
+    )
     cursor.execute(
         '''
         SELECT auth.create_assigner(
@@ -96,7 +103,7 @@ def create_assigner(
             %s,
             %s,
             %s
-        );
+        ) as assigner_id;
         ''',
         (
             first_name,
@@ -108,7 +115,9 @@ def create_assigner(
         )
     )
 
-    assigner_id = cursor.fetchone()[0]
+    row = cursor.fetchone()
+    assigner_id = row['assigner_id']
+    
     connection.commit()
     cursor.close()
     connection.close()
@@ -120,7 +129,9 @@ def get_assigner_by_login(
 ):
 
     connection = get_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(
+        row_factory=dict_row
+    )
     cursor.execute(
         '''
         SELECT
@@ -149,7 +160,9 @@ def get_assigner_by_email(
 ):
 
     connection = get_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(
+        row_factory=dict_row
+    )
     cursor.execute(
         '''
         SELECT
@@ -180,7 +193,9 @@ def update_assigner(
 ):
 
     connection = get_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(
+        row_factory=dict_row
+    )
     cursor.execute(
         '''
         SELECT auth.update_assigner(

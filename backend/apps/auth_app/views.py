@@ -3,6 +3,7 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 
 from common.password import hash_password
+from common.password import verify_password
 
 from apps.auth_app.services.assigner_service import create_assigner
 from apps.auth_app.services.assigner_service import get_assigners
@@ -14,18 +15,18 @@ from apps.auth_app.services.assigner_service import update_assigner
 PAGE_SIZE = 20
 PASSWORD_PLACEHOLDER = '********'
 
-ASSIGNER_ID = 0
-ASSIGNER_FIRST_NAME = 1
-ASSIGNER_MIDDLE_NAME = 2
-ASSIGNER_LAST_NAME = 3
-ASSIGNER_LOGIN = 4
-ASSIGNER_EMAIL = 5
-ASSIGNER_IS_ACTIVE = 6
-#ASSIGNER_CREATED_AT = 7
-#ASSIGNER_UPDATED_AT = 8
+ASSIGNER_ID = 'id'
+ASSIGNER_FIRST_NAME = 'first_name'
+ASSIGNER_MIDDLE_NAME = 'middle_name'
+ASSIGNER_LAST_NAME = 'last_name'
+ASSIGNER_LOGIN = 'login'
+ASSIGNER_EMAIL = 'email'
+ASSIGNER_PASSWORD_HASH = 'password_hash'
+ASSIGNER_IS_ACTIVE = 'is_active'
+ASSIGNER_CREATED_AT = 'created_at'
+ASSIGNER_UPDATED_AT = 'updated_at'
 
 def alert_back(message):
-    
     return HttpResponse(
         f'''
         <script>
@@ -35,13 +36,52 @@ def alert_back(message):
         '''
     )
 
+def assigner_logout(
+    request
+):
+
+    request.session.pop(
+        'assigner_id',
+        None
+    )
+
+    return redirect(
+        '/login/'
+    )
+
+def get_current_assigner_id(
+    request
+):
+
+    return request.session.get(
+        'assigner_id'
+    )
+
+def require_assigner_authentication(
+    request
+):
+
+    assigner_id = (
+        get_current_assigner_id(
+            request
+        )
+    )
+
+    if assigner_id is None:
+
+        return redirect(
+            '/login/'
+        )
+
+    return None
+
 def validate_required_fields(
     required_fields
 ):
     for field_value, field_name in required_fields:
         if not field_value:
-            
-            return (
+
+            return(
                 False,
                 alert_back(
                     f'{field_name} is required'
@@ -59,12 +99,12 @@ def validate_assigner_uniqueness(
         id=None
 ):
 
-    existing_assigner = get_assigner_by_login(login)    
+    existing_assigner = get_assigner_by_login(login)  
     existing_email = get_assigner_by_email(email)   
 
     assigner_id = None
     if existing_assigner is not None:
-        assigner_id, *void = existing_assigner
+        assigner_id = existing_assigner['id']
         if (
             id is None 
             or
@@ -79,7 +119,7 @@ def validate_assigner_uniqueness(
 
     assigner_id = None
     if existing_email is not None:
-        assigner_id, = existing_email
+        assigner_id = existing_email['id']
         if (
             id is None 
             or
@@ -297,7 +337,7 @@ def assigner_list(request):
     
     total_count = 0
     if rows:
-        total_count = rows[0][-1] 
+        total_count = rows[0].get('total_count', 0)
 
     page_number = paging['page_number']
     page_size = paging['page_size']
@@ -642,10 +682,11 @@ def assigner_edit(
     request,
     assigner_id
 ):
+  
     assigner = get_assigner(
         assigner_id
     )
-    
+
     if assigner is None:
 
         return HttpResponse(
@@ -866,4 +907,117 @@ def assigner_edit(
 
     return HttpResponse(
         html
-    )       
+    )
+
+@csrf_exempt
+def assigner_login(
+    request
+):
+
+    if request.method == 'GET':
+
+        return HttpResponse(
+            '''
+            <h1>Assigner login</h1>
+
+            <form method="post">
+
+                <div>
+                    Login
+                </div>
+
+                <input
+                    type="text"
+                    name="login"
+                >
+
+                <br>
+                <br>
+
+                <div>
+                    Password
+                </div>
+
+                <input
+                    type="password"
+                    name="password"
+                >
+
+                <br>
+                <br>
+
+                <button type="submit">
+                    Login
+                </button>
+
+            </form>
+            '''
+        )
+    
+    login = request.POST.get(
+        'login'
+    )
+
+    password = request.POST.get(
+        'password'
+    )    
+
+    assigner = get_assigner_by_login(
+        login
+    )    
+
+    if assigner is None:
+
+        return alert_back(
+            'Invalid login or password'
+        )
+        
+    if not assigner[ASSIGNER_IS_ACTIVE]:
+        return alert_back(
+            'User is inactive'
+        )
+    
+    if not verify_password(
+        password,
+        assigner[ASSIGNER_PASSWORD_HASH]
+    ):
+
+        return alert_back(
+            'Invalid login or password'
+        )
+
+    request.session[
+        'assigner_id'
+    ] = assigner[
+        ASSIGNER_ID
+    ]
+
+    return redirect(
+        '/assigner/'
+    )
+
+def assigner_home(
+    request
+):
+
+    response = (
+        require_assigner_authentication(
+            request
+        )
+    )
+
+    if response is not None:
+
+        return response
+
+    return HttpResponse(
+        '''
+        <h1>
+            Assigner home
+        </h1>
+
+        <a href="/logout/">
+            Logout
+        </a>
+        '''
+    )
