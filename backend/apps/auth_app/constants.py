@@ -1,0 +1,20 @@
+
+PAGE_SIZE = 20
+PASSWORD_PLACEHOLDER = '********'
+
+ASSIGNER_ID = 'id'
+ASSIGNER_FIRST_NAME = 'first_name'
+ASSIGNER_MIDDLE_NAME = 'middle_name'
+ASSIGNER_LAST_NAME = 'last_name'
+ASSIGNER_LOGIN = 'login'
+ASSIGNER_EMAIL = 'email'
+ASSIGNER_PASSWORD_HASH = 'password_hash'
+ASSIGNER_IS_ACTIVE = 'is_active'
+ASSIGNER_CREATED_AT = 'created_at'
+ASSIGNER_UPDATED_AT = 'updated_at'
+
+SUPERADMIN_ID = 'id'
+SUPERADMIN_PASSWORD_HASH = 'password_hash'
+SUPERADMIN_IS_ACTIVE = 'is_active'
+SESSION_ASSIGNER_ID = 'assigner_id'
+SESSION_SUPERADMIN_ID = 'superadmin_id'

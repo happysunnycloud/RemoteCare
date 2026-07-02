@@ -12,6 +12,7 @@ from apps.auth_app.services.assigner_service import get_assigner
 from apps.auth_app.services.assigner_service import get_assigner_by_login
 from apps.auth_app.services.assigner_service import get_assigner_by_email
 from apps.auth_app.services.assigner_service import update_assigner
+from apps.auth_app.services.assigner_service import touch_assigner
 
 from apps.auth_app.services.superadmin_service import (
     get_superadmin_by_login,
@@ -19,19 +20,7 @@ from apps.auth_app.services.superadmin_service import (
     touch_superadmin
 )
 
-PAGE_SIZE = 20
-PASSWORD_PLACEHOLDER = '********'
-
-ASSIGNER_ID = 'id'
-ASSIGNER_FIRST_NAME = 'first_name'
-ASSIGNER_MIDDLE_NAME = 'middle_name'
-ASSIGNER_LAST_NAME = 'last_name'
-ASSIGNER_LOGIN = 'login'
-ASSIGNER_EMAIL = 'email'
-ASSIGNER_PASSWORD_HASH = 'password_hash'
-ASSIGNER_IS_ACTIVE = 'is_active'
-ASSIGNER_CREATED_AT = 'created_at'
-ASSIGNER_UPDATED_AT = 'updated_at'
+from apps.auth_app.constants import *
 
 def alert_back(message):
     return HttpResponse(
@@ -46,35 +35,59 @@ def alert_back(message):
 def assigner_logout(
     request
 ):
-
-    request.session.pop(
-        'assigner_id',
-        None
-    )
+    #debug
+    # request.session.pop(
+    #     'assigner_id',
+    #     None
+    # )
+    #debug
+    request.session.flush()
 
     return redirect(
         '/login/'
     )
 
-def get_current_assigner_id(
+def get_current_assigner (
     request
 ):
 
-    return request.session.get(
-        'assigner_id'
+    assigner_id = request.session.get(
+        SESSION_ASSIGNER_ID
     )
+
+    if assigner_id is None:
+
+        return None
+
+    assigner = get_assigner(
+        assigner_id
+    )
+
+    if assigner is None:
+
+        request.session.flush()
+
+        return None
+
+    if not assigner[
+        'is_active'
+    ]:
+
+        request.session.flush()
+
+        return None
+
+    return assigner
 
 def require_assigner_authentication(
     request
 ):
 
-    assigner_id = (
-        get_current_assigner_id(
-            request
-        )
+    assigner = get_current_assigner(
+        request
     )
 
-    if assigner_id is None:
+    if assigner is None:
 
         return redirect(
             '/login/'
@@ -86,8 +99,8 @@ def get_current_superadmin(
     request
 ):
 
-    superadmin_id = request.session.get(
-        'superadmin_id'
+    superadmin_id = request.session.get(        
+        SESSION_SUPERADMIN_ID        
     )
 
     if superadmin_id is None:
@@ -994,6 +1007,16 @@ def assigner_login(
     request
 ):
 
+    assigner = get_current_assigner(
+        request
+    )
+
+    if assigner is not None:
+
+        return redirect(
+            '/assigner/'
+        )
+
     if request.method == 'GET':
 
         return HttpResponse(
@@ -1042,6 +1065,30 @@ def assigner_login(
         'password'
     )    
 
+    if not login:
+
+        return alert_back(
+            'Login is required'
+        )
+
+    if not password:
+
+        return alert_back(
+            'Password is required'
+        )
+
+    if len(login) > 100:
+
+        return alert_back(
+            'Login is too long'
+        )
+
+    if len(password) > 255:
+
+        return alert_back(
+            'Password is too long'
+        )
+
     assigner = get_assigner_by_login(
         login
     )    
@@ -1066,11 +1113,19 @@ def assigner_login(
             'Invalid login or password'
         )
 
+    request.session.flush()
+
     request.session[
         'assigner_id'
     ] = assigner[
         ASSIGNER_ID
     ]
+
+    touch_assigner(
+        assigner[
+            ASSIGNER_ID
+        ]
+    )
 
     return redirect(
         '/assigner/'
@@ -1202,7 +1257,7 @@ def superadmin_login(
         )
 
     if not superadmin[
-        'is_active'
+        SUPERADMIN_IS_ACTIVE
     ]:
 
         return alert_back(
@@ -1212,7 +1267,7 @@ def superadmin_login(
     if not verify_password(
         password,
         superadmin[
-            'password_hash'
+            SUPERADMIN_PASSWORD_HASH
         ]
     ):
 
@@ -1222,16 +1277,16 @@ def superadmin_login(
 
     touch_superadmin(
         superadmin[
-            'id'
+            SUPERADMIN_ID
         ]
     )
 
     request.session.flush()
 
     request.session[
-        'superadmin_id'
+        SESSION_SUPERADMIN_ID
     ] = superadmin[
-        'id'
+        SUPERADMIN_ID
     ]
 
     return HttpResponse(
@@ -1241,12 +1296,12 @@ def superadmin_login(
 def superadmin_logout(
     request
 ):
-
-    request.session.pop(
-        'superadmin_id',
-        None
-    )
-
+    #debug спросить, что делает request.session.pop
+    # request.session.pop(
+    #     'superadmin_id',
+    #     None
+    # )
+    #debug
     request.session.flush()
 
     return redirect(

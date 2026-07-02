@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Bvoot5DdhKpJNuDRXZUYOKEu0CpPPjIZ8YDSGsBu4kEJucKVmpnijJAYNhGHGlx
+\restrict T5PFqT2iqSuIBWhGGVpUuOSX71FOSOe29tPMP8S5RZG0c112MotTPV3Eb1G34lB
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg13+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg13+1)
@@ -151,26 +151,28 @@ $$;
 -- Name: get_assigner(bigint); Type: FUNCTION; Schema: auth; Owner: -
 --
 
-CREATE FUNCTION auth.get_assigner(p_assigner_id bigint) RETURNS TABLE(id bigint, first_name character varying, middle_name character varying, last_name character varying, login character varying, email character varying, is_active boolean, created_at timestamp without time zone, updated_at timestamp without time zone)
+CREATE FUNCTION auth.get_assigner(p_assigner_id bigint) RETURNS TABLE(id bigint, first_name character varying, middle_name character varying, last_name character varying, login character varying, email character varying, password_hash character varying, is_active boolean, created_at timestamp without time zone, updated_at timestamp without time zone)
     LANGUAGE plpgsql
-    AS $$
-BEGIN
-
-    RETURN QUERY
-    SELECT
-        a.id,
-        a.first_name,
-		a.middle_name,
-        a.last_name,
-        a.login,
-		a.email,
-        a.is_active,
-        a.created_at,
-        a.updated_at
-    FROM auth.assigner a
-    WHERE a.id = p_assigner_id;
-
-END;
+    AS $$
+BEGIN
+
+    RETURN QUERY
+
+    SELECT
+        a.id,
+        a.first_name,
+        a.middle_name,
+        a.last_name,
+        a.login,
+        a.email,
+        a.password_hash,
+        a.is_active,
+        a.created_at,
+        a.updated_at
+    FROM auth.assigner a
+    WHERE a.id = p_assigner_id;
+
+END;
 $$;
 
 
@@ -371,6 +373,24 @@ $$;
 
 
 --
+-- Name: touch_assigner(bigint); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.touch_assigner(p_assigner_id bigint) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+
+    UPDATE auth.assigner
+    SET
+        last_login_at = NOW()
+    WHERE id = p_assigner_id;
+
+END;
+$$;
+
+
+--
 -- Name: touch_superadmin(bigint); Type: FUNCTION; Schema: auth; Owner: -
 --
 
@@ -448,7 +468,8 @@ CREATE TABLE auth.assigner (
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     email character varying(255) NOT NULL,
-    middle_name character varying(100)
+    middle_name character varying(100),
+    last_login_at timestamp without time zone
 );
 
 
@@ -1134,5 +1155,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Bvoot5DdhKpJNuDRXZUYOKEu0CpPPjIZ8YDSGsBu4kEJucKVmpnijJAYNhGHGlx
+\unrestrict T5PFqT2iqSuIBWhGGVpUuOSX71FOSOe29tPMP8S5RZG0c112MotTPV3Eb1G34lB
 

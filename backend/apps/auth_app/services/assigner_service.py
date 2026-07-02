@@ -224,3 +224,30 @@ def update_assigner(
     connection.commit()
     cursor.close()
     connection.close()
+
+def touch_assigner(
+    assigner_id
+):
+
+    connection = get_connection()
+
+    cursor = connection.cursor(
+        row_factory=dict_row
+    )
+
+    cursor.execute(
+        '''
+        SELECT auth.touch_assigner(
+            %s
+        );
+        ''',
+        (
+            assigner_id,
+        )
+    )
+
+    connection.commit()
+
+    cursor.close()
+
+    connection.close()    
