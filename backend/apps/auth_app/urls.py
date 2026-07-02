@@ -1,12 +1,14 @@
 from django.urls import path
 
-from apps.auth_app.views import assigner_create
-from apps.auth_app.views import assigner_list
-from apps.auth_app.views import assigner_edit
-from apps.auth_app.views import assigner_login
-from apps.auth_app.views import assigner_home
 from apps.auth_app.views import (
-    assigner_logout
+    assigner_create,
+    assigner_list,
+    assigner_edit,
+    assigner_login,
+    assigner_home,
+    assigner_logout,
+    superadmin_login,
+    superadmin_logout
 )
 
 urlpatterns = [
@@ -41,6 +43,16 @@ urlpatterns = [
     path(
         'logout/',
         assigner_logout
+    ),
+
+    path(
+        'superadmin/login/',
+        superadmin_login
+    ),    
+
+    path(
+        'superadmin/logout/',
+        superadmin_logout
     ),
 
 ]

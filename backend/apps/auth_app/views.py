@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
+from django.middleware.csrf import get_token
 
 from common.password import hash_password
 from common.password import verify_password
@@ -11,6 +12,12 @@ from apps.auth_app.services.assigner_service import get_assigner
 from apps.auth_app.services.assigner_service import get_assigner_by_login
 from apps.auth_app.services.assigner_service import get_assigner_by_email
 from apps.auth_app.services.assigner_service import update_assigner
+
+from apps.auth_app.services.superadmin_service import (
+    get_superadmin_by_login,
+    get_superadmin,
+    touch_superadmin
+)
 
 PAGE_SIZE = 20
 PASSWORD_PLACEHOLDER = '********'
@@ -71,6 +78,54 @@ def require_assigner_authentication(
 
         return redirect(
             '/login/'
+        )
+
+    return None
+
+def get_current_superadmin(
+    request
+):
+
+    superadmin_id = request.session.get(
+        'superadmin_id'
+    )
+
+    if superadmin_id is None:
+
+        return None
+
+    superadmin = get_superadmin(
+        superadmin_id
+    )
+
+    if superadmin is None:
+
+        request.session.flush()
+
+        return None
+
+    if not superadmin[
+        'is_active'
+    ]:
+
+        request.session.flush()
+
+        return None
+
+    return superadmin
+
+def require_superadmin_authentication(
+    request
+):
+
+    superadmin = get_current_superadmin(
+        request
+    )
+
+    if superadmin is None:
+
+        return redirect(
+            '/superadmin/login/'
         )
 
     return None
@@ -318,6 +373,14 @@ def assigner_list(request):
         request
     )    
 
+    response = require_superadmin_authentication(
+        request
+    )
+
+    if response is not None:
+
+        return response
+
     if not request.GET:
         filters['is_active'] = True
     
@@ -525,6 +588,15 @@ def assigner_list(request):
 
 @csrf_exempt
 def assigner_create(request):
+
+    response = require_superadmin_authentication(
+        request
+    )
+
+    if response is not None:
+
+        return response
+
     if request.method == 'GET':
         html = '''
         <h1>Create assigner</h1>
@@ -683,6 +755,14 @@ def assigner_edit(
     assigner_id
 ):
   
+    response = require_superadmin_authentication(
+        request
+    )
+
+    if response is not None:
+
+        return response
+
     assigner = get_assigner(
         assigner_id
     )
@@ -1020,4 +1100,155 @@ def assigner_home(
             Logout
         </a>
         '''
+    )
+
+def superadmin_login(
+    request
+):
+
+    if get_current_superadmin(
+        request
+    ) is not None:
+
+        return redirect(
+            '/assigners/'
+        )
+
+    if request.method == 'GET':
+        return HttpResponse(
+            f'''
+            <h1>SuperAdmin login</h1>
+
+            <form method="post">
+
+                <input
+                    type="hidden"
+                    name="csrfmiddlewaretoken"
+                    value="{get_token(request)}"
+                >
+
+                <div>
+                    Login
+                </div>
+
+                <input
+                    type="text"
+                    name="login"
+                >
+
+                <br>
+                <br>
+
+                <div>
+                    Password
+                </div>
+
+                <input
+                    type="password"
+                    name="password"
+                >
+
+                <br>
+                <br>
+
+                <button type="submit">
+                    Login
+                </button>
+
+            </form>
+            '''
+        )
+
+    login = request.POST.get(
+        'login'
+    )
+
+    password = request.POST.get(
+        'password'
+    )
+
+    if not login:
+
+        return alert_back(
+            'Login is required'
+        )
+
+    if not password:
+
+        return alert_back(
+            'Password is required'
+        )
+
+    if len(login) > 100:
+
+        return alert_back(
+            'Login is too long'
+        )
+
+    if len(password) > 255:
+
+        return alert_back(
+            'Password is too long'
+        )
+
+    superadmin = get_superadmin_by_login(
+        login
+    )
+
+    if superadmin is None:
+
+        return alert_back(
+            'Invalid login or password'
+        )
+
+    if not superadmin[
+        'is_active'
+    ]:
+
+        return alert_back(
+            'User is inactive'
+        )
+
+    if not verify_password(
+        password,
+        superadmin[
+            'password_hash'
+        ]
+    ):
+
+        return alert_back(
+            'Invalid login or password'
+        )
+
+    touch_superadmin(
+        superadmin[
+            'id'
+        ]
+    )
+
+    request.session.flush()
+
+    request.session[
+        'superadmin_id'
+    ] = superadmin[
+        'id'
+    ]
+
+    return HttpResponse(
+        'Login successful'
+    )
+
+def superadmin_logout(
+    request
+):
+
+    request.session.pop(
+        'superadmin_id',
+        None
+    )
+
+    request.session.flush()
+
+    return redirect(
+        '/superadmin/login/'
     )
