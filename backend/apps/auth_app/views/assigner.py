@@ -3,33 +3,176 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 
-from common.password import hash_password
-from common.password import verify_password
-
-from apps.auth_app.services.assigner_service import create_assigner
-from apps.auth_app.services.assigner_service import get_assigners
-from apps.auth_app.services.assigner_service import get_assigner
-from apps.auth_app.services.assigner_service import get_assigner_by_login
-from apps.auth_app.services.assigner_service import get_assigner_by_email
-from apps.auth_app.services.assigner_service import update_assigner
-from apps.auth_app.services.assigner_service import touch_assigner
-
-from apps.auth_app.services.superadmin_service import (
-    get_superadmin_by_login,
-    get_superadmin,
-    touch_superadmin
+from apps.auth_app.auth import (
+    get_current_assigner,
+    require_assigner_authentication,
+    require_superadmin_authentication,
 )
 
-from apps.auth_app.constants import *
+from apps.auth_app.constants import (
+    ASSIGNER_IS_ACTIVE,
+    ASSIGNER_PASSWORD_HASH,
+    ASSIGNER_ID,
+    ASSIGNER_FIRST_NAME,
+    ASSIGNER_MIDDLE_NAME,
+    ASSIGNER_LAST_NAME,
+    ASSIGNER_LOGIN,
+    ASSIGNER_EMAIL,
+    ASSIGNER_IS_ACTIVE,
+    PASSWORD_PLACEHOLDER,
+    PAGE_SIZE,
+)
 
-def alert_back(message):
-    return HttpResponse(
-        f'''
-        <script>
-            alert('{message}');
-            window.history.back();
-        </script>
-        '''
+from common.password import (
+    hash_password,
+    verify_password
+)
+
+from apps.auth_app.services.assigner_service import (
+    create_assigner,
+    get_assigners,
+    get_assigner,
+    get_assigner_by_login,
+    get_assigner_by_email,
+    update_assigner,
+    touch_assigner,
+)
+
+from .common import (
+    alert_back,
+    validate_required_fields,
+    build_sort_link,
+    build_page_link,
+    get_query_param,
+)
+
+@csrf_exempt
+def assigner_login(
+    request
+):
+
+    assigner = get_current_assigner(
+        request
+    )
+
+    if assigner is not None:
+
+        return redirect(
+            '/assigner/'
+        )
+
+    if request.method == 'GET':
+
+        return HttpResponse(
+            '''
+            <h1>Assigner login</h1>
+
+            <form method="post">
+
+                <div>
+                    Login
+                </div>
+
+                <input
+                    type="text"
+                    name="login"
+                >
+
+                <br>
+                <br>
+
+                <div>
+                    Password
+                </div>
+
+                <input
+                    type="password"
+                    name="password"
+                >
+
+                <br>
+                <br>
+
+                <button type="submit">
+                    Login
+                </button>
+
+            </form>
+            '''
+        )
+    
+    login = request.POST.get(
+        'login'
+    )
+
+    password = request.POST.get(
+        'password'
+    )    
+
+    if not login:
+
+        return alert_back(
+            'Login is required'
+        )
+
+    if not password:
+
+        return alert_back(
+            'Password is required'
+        )
+
+    if len(login) > 100:
+
+        return alert_back(
+            'Login is too long'
+        )
+
+    if len(password) > 255:
+
+        return alert_back(
+            'Password is too long'
+        )
+
+    assigner = get_assigner_by_login(
+        login
+    )    
+
+    if assigner is None:
+
+        return alert_back(
+            'Invalid login or password'
+        )
+        
+    if not assigner[ASSIGNER_IS_ACTIVE]:
+        return alert_back(
+            'User is inactive'
+        )
+    
+    if not verify_password(
+        password,
+        assigner[ASSIGNER_PASSWORD_HASH]
+    ):
+
+        return alert_back(
+            'Invalid login or password'
+        )
+
+    request.session.flush()
+
+    request.session[
+        'assigner_id'
+    ] = assigner[
+        ASSIGNER_ID
+    ]
+
+    touch_assigner(
+        assigner[
+            ASSIGNER_ID
+        ]
+    )
+
+    return redirect(
+        '/assigner/'
     )
 
 def assigner_logout(
@@ -47,340 +190,6 @@ def assigner_logout(
         '/login/'
     )
 
-def get_current_assigner (
-    request
-):
-
-    assigner_id = request.session.get(
-        SESSION_ASSIGNER_ID
-    )
-
-    if assigner_id is None:
-
-        return None
-
-    assigner = get_assigner(
-        assigner_id
-    )
-
-    if assigner is None:
-
-        request.session.flush()
-
-        return None
-
-    if not assigner[
-        'is_active'
-    ]:
-
-        request.session.flush()
-
-        return None
-
-    return assigner
-
-def require_assigner_authentication(
-    request
-):
-
-    assigner = get_current_assigner(
-        request
-    )
-
-    if assigner is None:
-
-        return redirect(
-            '/login/'
-        )
-
-    return None
-
-def get_current_superadmin(
-    request
-):
-
-    superadmin_id = request.session.get(        
-        SESSION_SUPERADMIN_ID        
-    )
-
-    if superadmin_id is None:
-
-        return None
-
-    superadmin = get_superadmin(
-        superadmin_id
-    )
-
-    if superadmin is None:
-
-        request.session.flush()
-
-        return None
-
-    if not superadmin[
-        'is_active'
-    ]:
-
-        request.session.flush()
-
-        return None
-
-    return superadmin
-
-def require_superadmin_authentication(
-    request
-):
-
-    superadmin = get_current_superadmin(
-        request
-    )
-
-    if superadmin is None:
-
-        return redirect(
-            '/superadmin/login/'
-        )
-
-    return None
-
-def validate_required_fields(
-    required_fields
-):
-    for field_value, field_name in required_fields:
-        if not field_value:
-
-            return(
-                False,
-                alert_back(
-                    f'{field_name} is required'
-                )
-            )
-
-    return (
-        True,
-        None
-    )
-
-def validate_assigner_uniqueness(        
-        login, 
-        email,
-        id=None
-):
-
-    existing_assigner = get_assigner_by_login(login)  
-    existing_email = get_assigner_by_email(email)   
-
-    assigner_id = None
-    if existing_assigner is not None:
-        assigner_id = existing_assigner['id']
-        if (
-            id is None 
-            or
-            id != assigner_id 
-        ):
-            return (
-                False,     
-                alert_back(            
-                    f'Login "{login}" already exists'
-                )
-            )
-
-    assigner_id = None
-    if existing_email is not None:
-        assigner_id = existing_email['id']
-        if (
-            id is None 
-            or
-            id != assigner_id 
-        ):
-            return (
-                False,     
-                alert_back(            
-                    f'Email "{email}" already exists'
-                )
-            )
-
-    return (
-        True,
-        None
-    )
-
-def get_query_param(
-    request,
-    param_name,
-    default_value=None
-):
-    value = request.GET.get(
-        param_name
-    )
-
-    if value == '':
-        return default_value
-
-    if value is None:
-        return default_value
-
-    return value
-
-def get_assigner_filters(
-    request
-):
-    return {
-        'assigner_id': get_query_param(
-            request,
-            'id'
-        ),
-
-        'first_name': get_query_param(
-            request,
-            'first_name'
-        ),
-
-        'middle_name': get_query_param(
-            request,
-            'middle_name'
-        ),
-
-        'last_name': get_query_param(
-            request,
-            'last_name'
-        ),
-
-        'login': get_query_param(
-            request,
-            'login'
-        ),
-
-        'email': get_query_param(
-            request,
-            'email'
-        ),
-
-        'is_active': get_query_param(
-            request,
-            'is_active'
-        ) == 'true',
-    }
-
-def get_assigner_sorting(request):
-    return {
-        'sort_by': get_query_param(
-            request,
-            'sort_by',
-            'id'
-        ),
-
-        'sort_order': get_query_param(
-            request,
-            'sort_order',
-            'asc'
-        ),
-    }
-
-def get_assigner_paging(
-    request
-):
-
-    page_number = get_query_param(
-        request,
-        'page',
-        '1'
-    )
-
-    return {
-
-        'page_number': int(
-            page_number
-        ),
-
-        'page_size': PAGE_SIZE,
-    }
-
-def build_sort_link(
-    filters,
-    sorting,
-    column_name
-):
-    next_sort_order = 'asc'
-
-    if (
-        sorting['sort_by'] == column_name
-        and
-        sorting['sort_order'] == 'asc'
-    ):
-        next_sort_order = 'desc'
-
-    params = []
-
-    for key, value in filters.items():
-        if isinstance(
-            value,
-            bool
-        ):
-            if value:
-                params.append(
-                    f'{key}=true'
-                )
-            continue
-
-        if value is not None:
-            params.append(
-                f'{key}={value}'
-            )
-
-    params.append(
-        f'sort_by={column_name}'
-    )
-
-    params.append(
-        f'sort_order={next_sort_order}'
-    )
-
-    query_string = '&'.join(
-        params
-    )
-
-    return f'?{query_string}'
-    
-def build_page_link(
-    filters,
-    sorting,
-    page_number
-):
-
-    params = []
-
-    for key, value in filters.items():
-        if isinstance(
-            value,
-            bool
-        ):
-            params.append(
-                f'{key}={"true" if value else "false"}'
-            )
-            continue
-
-        if value is not None:
-            params.append(
-                f'{key}={value}'
-            )
-
-    params.append(
-        f'sort_by={sorting["sort_by"]}'
-    )
-
-    params.append(
-        f'sort_order={sorting["sort_order"]}'
-    )
-
-    params.append(
-        f'page={page_number}'
-    )
-
-    return '?' + '&'.join(
-        params
-    )    
-
 def assigner_list(request):
     filters = get_assigner_filters(
         request
@@ -389,7 +198,7 @@ def assigner_list(request):
     response = require_superadmin_authentication(
         request
     )
-
+    
     if response is not None:
 
         return response
@@ -1002,135 +811,6 @@ def assigner_edit(
         html
     )
 
-@csrf_exempt
-def assigner_login(
-    request
-):
-
-    assigner = get_current_assigner(
-        request
-    )
-
-    if assigner is not None:
-
-        return redirect(
-            '/assigner/'
-        )
-
-    if request.method == 'GET':
-
-        return HttpResponse(
-            '''
-            <h1>Assigner login</h1>
-
-            <form method="post">
-
-                <div>
-                    Login
-                </div>
-
-                <input
-                    type="text"
-                    name="login"
-                >
-
-                <br>
-                <br>
-
-                <div>
-                    Password
-                </div>
-
-                <input
-                    type="password"
-                    name="password"
-                >
-
-                <br>
-                <br>
-
-                <button type="submit">
-                    Login
-                </button>
-
-            </form>
-            '''
-        )
-    
-    login = request.POST.get(
-        'login'
-    )
-
-    password = request.POST.get(
-        'password'
-    )    
-
-    if not login:
-
-        return alert_back(
-            'Login is required'
-        )
-
-    if not password:
-
-        return alert_back(
-            'Password is required'
-        )
-
-    if len(login) > 100:
-
-        return alert_back(
-            'Login is too long'
-        )
-
-    if len(password) > 255:
-
-        return alert_back(
-            'Password is too long'
-        )
-
-    assigner = get_assigner_by_login(
-        login
-    )    
-
-    if assigner is None:
-
-        return alert_back(
-            'Invalid login or password'
-        )
-        
-    if not assigner[ASSIGNER_IS_ACTIVE]:
-        return alert_back(
-            'User is inactive'
-        )
-    
-    if not verify_password(
-        password,
-        assigner[ASSIGNER_PASSWORD_HASH]
-    ):
-
-        return alert_back(
-            'Invalid login or password'
-        )
-
-    request.session.flush()
-
-    request.session[
-        'assigner_id'
-    ] = assigner[
-        ASSIGNER_ID
-    ]
-
-    touch_assigner(
-        assigner[
-            ASSIGNER_ID
-        ]
-    )
-
-    return redirect(
-        '/assigner/'
-    )
-
 def assigner_home(
     request
 ):
@@ -1157,153 +837,120 @@ def assigner_home(
         '''
     )
 
-def superadmin_login(
+def validate_assigner_uniqueness(        
+        login, 
+        email,
+        id=None
+):
+
+    existing_assigner = get_assigner_by_login(login)  
+    existing_email = get_assigner_by_email(email)   
+
+    assigner_id = None
+    if existing_assigner is not None:
+        assigner_id = existing_assigner['id']
+        if (
+            id is None 
+            or
+            id != assigner_id 
+        ):
+            return (
+                False,     
+                alert_back(            
+                    f'Login "{login}" already exists'
+                )
+            )
+
+    assigner_id = None
+    if existing_email is not None:
+        assigner_id = existing_email['id']
+        if (
+            id is None 
+            or
+            id != assigner_id 
+        ):
+            return (
+                False,     
+                alert_back(            
+                    f'Email "{email}" already exists'
+                )
+            )
+
+    return (
+        True,
+        None
+    )
+
+def get_assigner_filters(
+    request
+):
+    return {
+        'assigner_id': get_query_param(
+            request,
+            'id'
+        ),
+
+        'first_name': get_query_param(
+            request,
+            'first_name'
+        ),
+
+        'middle_name': get_query_param(
+            request,
+            'middle_name'
+        ),
+
+        'last_name': get_query_param(
+            request,
+            'last_name'
+        ),
+
+        'login': get_query_param(
+            request,
+            'login'
+        ),
+
+        'email': get_query_param(
+            request,
+            'email'
+        ),
+
+        'is_active': get_query_param(
+            request,
+            'is_active'
+        ) == 'true',
+    }
+
+def get_assigner_sorting(request):
+    return {
+        'sort_by': get_query_param(
+            request,
+            'sort_by',
+            'id'
+        ),
+
+        'sort_order': get_query_param(
+            request,
+            'sort_order',
+            'asc'
+        ),
+    }
+
+def get_assigner_paging(
     request
 ):
 
-    if get_current_superadmin(
-        request
-    ) is not None:
-
-        return redirect(
-            '/assigners/'
-        )
-
-    if request.method == 'GET':
-        return HttpResponse(
-            f'''
-            <h1>SuperAdmin login</h1>
-
-            <form method="post">
-
-                <input
-                    type="hidden"
-                    name="csrfmiddlewaretoken"
-                    value="{get_token(request)}"
-                >
-
-                <div>
-                    Login
-                </div>
-
-                <input
-                    type="text"
-                    name="login"
-                >
-
-                <br>
-                <br>
-
-                <div>
-                    Password
-                </div>
-
-                <input
-                    type="password"
-                    name="password"
-                >
-
-                <br>
-                <br>
-
-                <button type="submit">
-                    Login
-                </button>
-
-            </form>
-            '''
-        )
-
-    login = request.POST.get(
-        'login'
+    page_number = get_query_param(
+        request,
+        'page',
+        '1'
     )
 
-    password = request.POST.get(
-        'password'
-    )
+    return {
 
-    if not login:
+        'page_number': int(
+            page_number
+        ),
 
-        return alert_back(
-            'Login is required'
-        )
-
-    if not password:
-
-        return alert_back(
-            'Password is required'
-        )
-
-    if len(login) > 100:
-
-        return alert_back(
-            'Login is too long'
-        )
-
-    if len(password) > 255:
-
-        return alert_back(
-            'Password is too long'
-        )
-
-    superadmin = get_superadmin_by_login(
-        login
-    )
-
-    if superadmin is None:
-
-        return alert_back(
-            'Invalid login or password'
-        )
-
-    if not superadmin[
-        SUPERADMIN_IS_ACTIVE
-    ]:
-
-        return alert_back(
-            'User is inactive'
-        )
-
-    if not verify_password(
-        password,
-        superadmin[
-            SUPERADMIN_PASSWORD_HASH
-        ]
-    ):
-
-        return alert_back(
-            'Invalid login or password'
-        )
-
-    touch_superadmin(
-        superadmin[
-            SUPERADMIN_ID
-        ]
-    )
-
-    request.session.flush()
-
-    request.session[
-        SESSION_SUPERADMIN_ID
-    ] = superadmin[
-        SUPERADMIN_ID
-    ]
-
-    return HttpResponse(
-        'Login successful'
-    )
-
-def superadmin_logout(
-    request
-):
-    #debug спросить, что делает request.session.pop
-    # request.session.pop(
-    #     'superadmin_id',
-    #     None
-    # )
-    #debug
-    request.session.flush()
-
-    return redirect(
-        '/superadmin/login/'
-    )
+        'page_size': PAGE_SIZE,
+    }
