@@ -5,8 +5,6 @@ from django.middleware.csrf import get_token
 
 from apps.auth_app.auth import (
     get_current_assigner,
-    require_assigner_authentication,
-    require_superadmin_authentication,
 )
 
 from apps.auth_app.constants import (
@@ -36,6 +34,14 @@ from apps.auth_app.services.assigner_service import (
     get_assigner_by_email,
     update_assigner,
     touch_assigner,
+)
+
+from common.decorators.superadmin import (
+    superadmin_required,
+)
+
+from common.decorators.assigner import (
+    assigner_required,
 )
 
 from .common import (
@@ -190,18 +196,11 @@ def assigner_logout(
         '/login/'
     )
 
+@superadmin_required
 def assigner_list(request):
     filters = get_assigner_filters(
         request
     )    
-
-    response = require_superadmin_authentication(
-        request
-    )
-    
-    if response is not None:
-
-        return response
 
     if not request.GET:
         filters['is_active'] = True
@@ -409,15 +408,8 @@ def assigner_list(request):
     return HttpResponse(html)
 
 @csrf_exempt
+@superadmin_required
 def assigner_create(request):
-
-    response = require_superadmin_authentication(
-        request
-    )
-
-    if response is not None:
-
-        return response
 
     if request.method == 'GET':
         html = '''
@@ -572,18 +564,11 @@ def assigner_create(request):
     return redirect('/assigners/')
 
 @csrf_exempt
+@superadmin_required
 def assigner_edit(
     request,
     assigner_id
 ):
-  
-    response = require_superadmin_authentication(
-        request
-    )
-
-    if response is not None:
-
-        return response
 
     assigner = get_assigner(
         assigner_id
@@ -811,19 +796,10 @@ def assigner_edit(
         html
     )
 
+@assigner_required
 def assigner_home(
     request
 ):
-
-    response = (
-        require_assigner_authentication(
-            request
-        )
-    )
-
-    if response is not None:
-
-        return response
 
     return HttpResponse(
         '''

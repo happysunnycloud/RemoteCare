@@ -39,19 +39,3 @@ def get_current_superadmin(
         return None
 
     return superadmin
-
-def require_superadmin_authentication(
-    request
-):
-
-    superadmin = get_current_superadmin(
-        request
-    )
-
-    if superadmin is None:
-
-        return redirect(
-            '/superadmin/login/'
-        )
-
-    return None

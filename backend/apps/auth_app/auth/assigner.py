@@ -37,19 +37,3 @@ def get_current_assigner (
         return None
 
     return assigner
-
-def require_assigner_authentication(
-    request
-):
-
-    assigner = get_current_assigner(
-        request
-    )
-
-    if assigner is None:
-
-        return redirect(
-            '/login/'
-        )
-
-    return None
